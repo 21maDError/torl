@@ -17,33 +17,42 @@ pub enum Activation {
 impl Activation {
     pub fn from_str(s: &str) -> Self {
         match s.to_lowercase().as_str() {
-            "relu"    => Activation::Relu,
-            "tanh"    => Activation::Tanh,
+            "relu" => Activation::Relu,
+            "tanh" => Activation::Tanh,
             "sigmoid" => Activation::Sigmoid,
-            _         => Activation::Linear,
+            _ => Activation::Linear,
         }
     }
 
     pub fn apply(&self, x: &[f64]) -> Vec<f64> {
         match self {
-            Activation::Relu    => x.iter().map(|&v| v.max(0.0)).collect(),
-            Activation::Tanh    => x.iter().map(|&v| v.tanh()).collect(),
+            Activation::Relu => x.iter().map(|&v| v.max(0.0)).collect(),
+            Activation::Tanh => x.iter().map(|&v| v.tanh()).collect(),
             Activation::Sigmoid => x.iter().map(|&v| 1.0 / (1.0 + (-v).exp())).collect(),
-            Activation::Linear  => x.to_vec(),
+            Activation::Linear => x.to_vec(),
         }
     }
 
     /// Element-wise activation gradient: dL/dz = dL/da * da/dz
     pub fn backward(&self, grad_out: &[f64], pre_act: &[f64]) -> Vec<f64> {
         match self {
-            Activation::Relu => grad_out.iter().zip(pre_act.iter())
+            Activation::Relu => grad_out
+                .iter()
+                .zip(pre_act.iter())
                 .map(|(&g, &z)| if z > 0.0 { g } else { 0.0 })
                 .collect(),
-            Activation::Tanh => grad_out.iter().zip(pre_act.iter())
+            Activation::Tanh => grad_out
+                .iter()
+                .zip(pre_act.iter())
                 .map(|(&g, &z)| g * (1.0 - z.tanh().powi(2)))
                 .collect(),
-            Activation::Sigmoid => grad_out.iter().zip(pre_act.iter())
-                .map(|(&g, &z)| { let s = 1.0 / (1.0 + (-z).exp()); g * s * (1.0 - s) })
+            Activation::Sigmoid => grad_out
+                .iter()
+                .zip(pre_act.iter())
+                .map(|(&g, &z)| {
+                    let s = 1.0 / (1.0 + (-z).exp());
+                    g * s * (1.0 - s)
+                })
                 .collect(),
             Activation::Linear => grad_out.to_vec(),
         }
@@ -58,18 +67,23 @@ impl Activation {
 pub struct Layer {
     /// weights[out][in]
     pub weights: Vec<Vec<f64>>,
-    pub biases:  Vec<f64>,
+    pub biases: Vec<f64>,
     pub activation: Activation,
 
     // Cached values for backpropagation (not serialized)
     #[serde(skip)]
-    input_cache:   Vec<f64>,
+    input_cache: Vec<f64>,
     #[serde(skip)]
     pre_act_cache: Vec<f64>,
 }
 
 impl Layer {
-    pub fn new(in_size: usize, out_size: usize, activation: Activation, rng: &mut impl Rng) -> Self {
+    pub fn new(
+        in_size: usize,
+        out_size: usize,
+        activation: Activation,
+        rng: &mut impl Rng,
+    ) -> Self {
         // Xavier / Glorot initialization
         let scale = (2.0 / (in_size + out_size) as f64).sqrt();
         let normal = Normal::new(0.0, scale).unwrap();
@@ -80,7 +94,7 @@ impl Layer {
             weights,
             biases: vec![0.0; out_size],
             activation,
-            input_cache:   vec![0.0; in_size],
+            input_cache: vec![0.0; in_size],
             pre_act_cache: vec![0.0; out_size],
         }
     }
@@ -92,19 +106,32 @@ impl Layer {
         let mut pre_act = vec![0.0; n_out];
         for i in 0..n_out {
             pre_act[i] = self.biases[i]
-                + self.weights[i].iter().zip(input).map(|(w, x)| w * x).sum::<f64>();
+                + self.weights[i]
+                    .iter()
+                    .zip(input)
+                    .map(|(w, x)| w * x)
+                    .sum::<f64>();
         }
         self.pre_act_cache = pre_act.clone();
         self.activation.apply(&pre_act)
     }
 
     /// Forward pass without caching (used for target / eval inference).
-    pub fn forward_no_grad(weights: &[Vec<f64>], biases: &[f64], activation: &Activation, input: &[f64]) -> Vec<f64> {
+    pub fn forward_no_grad(
+        weights: &[Vec<f64>],
+        biases: &[f64],
+        activation: &Activation,
+        input: &[f64],
+    ) -> Vec<f64> {
         let n_out = weights.len();
         let mut pre_act = vec![0.0; n_out];
         for i in 0..n_out {
             pre_act[i] = biases[i]
-                + weights[i].iter().zip(input).map(|(w, x)| w * x).sum::<f64>();
+                + weights[i]
+                    .iter()
+                    .zip(input)
+                    .map(|(w, x)| w * x)
+                    .sum::<f64>();
         }
         activation.apply(&pre_act)
     }
@@ -114,7 +141,7 @@ impl Layer {
     pub fn backward(&self, grad_out: &[f64]) -> (Vec<Vec<f64>>, Vec<f64>, Vec<f64>) {
         let grad_pre = self.activation.backward(grad_out, &self.pre_act_cache);
         let n_out = self.weights.len();
-        let n_in  = self.input_cache.len();
+        let n_in = self.input_cache.len();
 
         let mut grad_w = vec![vec![0.0; n_in]; n_out];
         for i in 0..n_out {
@@ -140,8 +167,8 @@ impl Layer {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Network {
-    pub layers:   Vec<Layer>,
-    pub in_size:  usize,
+    pub layers: Vec<Layer>,
+    pub in_size: usize,
     pub out_size: usize,
 }
 
@@ -152,11 +179,18 @@ impl Network {
         assert!(layer_sizes.len() >= 2);
         assert_eq!(layer_sizes.len() - 1, activations.len());
         let layers = (0..layer_sizes.len() - 1)
-            .map(|i| Layer::new(layer_sizes[i], layer_sizes[i + 1], activations[i].clone(), rng))
+            .map(|i| {
+                Layer::new(
+                    layer_sizes[i],
+                    layer_sizes[i + 1],
+                    activations[i].clone(),
+                    rng,
+                )
+            })
             .collect();
         Network {
             layers,
-            in_size:  layer_sizes[0],
+            in_size: layer_sizes[0],
             out_size: *layer_sizes.last().unwrap(),
         }
     }
@@ -197,24 +231,24 @@ impl Network {
     pub fn copy_weights_from(&mut self, other: &Network) {
         for (sl, ol) in self.layers.iter_mut().zip(other.layers.iter()) {
             sl.weights = ol.weights.clone();
-            sl.biases  = ol.biases.clone();
+            sl.biases = ol.biases.clone();
         }
     }
 
     /// Zero-initialise a gradient structure matching this network.
     pub fn zero_grads(&self) -> Vec<(Vec<Vec<f64>>, Vec<f64>)> {
-        self.layers.iter().map(|l| {
-            let gw = vec![vec![0.0; l.weights[0].len()]; l.weights.len()];
-            let gb = vec![0.0; l.biases.len()];
-            (gw, gb)
-        }).collect()
+        self.layers
+            .iter()
+            .map(|l| {
+                let gw = vec![vec![0.0; l.weights[0].len()]; l.weights.len()];
+                let gb = vec![0.0; l.biases.len()];
+                (gw, gb)
+            })
+            .collect()
     }
 
     /// Add `other` gradients into `acc` (in-place).
-    pub fn add_grads(
-        acc: &mut [(Vec<Vec<f64>>, Vec<f64>)],
-        other: &[(Vec<Vec<f64>>, Vec<f64>)],
-    ) {
+    pub fn add_grads(acc: &mut [(Vec<Vec<f64>>, Vec<f64>)], other: &[(Vec<Vec<f64>>, Vec<f64>)]) {
         for (a, o) in acc.iter_mut().zip(other.iter()) {
             for (ar, or_) in a.0.iter_mut().zip(o.0.iter()) {
                 for (av, ov) in ar.iter_mut().zip(or_.iter()) {
@@ -231,9 +265,13 @@ impl Network {
     pub fn scale_grads(grads: &mut [(Vec<Vec<f64>>, Vec<f64>)], scale: f64) {
         for (gw, gb) in grads.iter_mut() {
             for row in gw.iter_mut() {
-                for v in row.iter_mut() { *v *= scale; }
+                for v in row.iter_mut() {
+                    *v *= scale;
+                }
             }
-            for v in gb.iter_mut() { *v *= scale; }
+            for v in gb.iter_mut() {
+                *v *= scale;
+            }
         }
     }
 
@@ -258,10 +296,10 @@ impl Network {
 
 #[derive(Debug, Clone)]
 pub struct Adam {
-    pub lr:    f64,
+    pub lr: f64,
     pub beta1: f64,
     pub beta2: f64,
-    pub eps:   f64,
+    pub eps: f64,
     t: usize,
     // First & second moment buffers: [layer][row][col] for weights, [layer][i] for biases
     mw: Vec<Vec<Vec<f64>>>,
@@ -272,11 +310,29 @@ pub struct Adam {
 
 impl Adam {
     pub fn new(net: &Network, lr: f64) -> Self {
-        let mw: Vec<_> = net.layers.iter().map(|l| vec![vec![0.0; l.weights[0].len()]; l.weights.len()]).collect();
+        let mw: Vec<_> = net
+            .layers
+            .iter()
+            .map(|l| vec![vec![0.0; l.weights[0].len()]; l.weights.len()])
+            .collect();
         let vw = mw.clone();
-        let mb: Vec<_> = net.layers.iter().map(|l| vec![0.0; l.biases.len()]).collect();
+        let mb: Vec<_> = net
+            .layers
+            .iter()
+            .map(|l| vec![0.0; l.biases.len()])
+            .collect();
         let vb = mb.clone();
-        Adam { lr, beta1: 0.9, beta2: 0.999, eps: 1e-8, t: 0, mw, vw, mb, vb }
+        Adam {
+            lr,
+            beta1: 0.9,
+            beta2: 0.999,
+            eps: 1e-8,
+            t: 0,
+            mw,
+            vw,
+            mb,
+            vb,
+        }
     }
 
     pub fn step(&mut self, net: &mut Network, grads: &[(Vec<Vec<f64>>, Vec<f64>)]) {
@@ -357,7 +413,7 @@ pub fn compute_returns(rewards: &[f64], gamma: f64) -> Vec<f64> {
 /// Normalise a vector to zero mean, unit variance
 pub fn normalize(v: &[f64]) -> Vec<f64> {
     let mean = v.iter().sum::<f64>() / v.len() as f64;
-    let var  = v.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / v.len() as f64;
-    let std  = var.sqrt().max(1e-8);
+    let var = v.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / v.len() as f64;
+    let std = var.sqrt().max(1e-8);
     v.iter().map(|x| (x - mean) / std).collect()
 }

@@ -81,10 +81,18 @@ pub struct EnvironmentConfig {
     pub obstacle_fraction: f64,
 }
 
-fn default_max_steps() -> usize { 500 }
-fn default_seed() -> u64 { 42 }
-fn default_grid_size() -> [usize; 2] { [5, 5] }
-fn default_obstacle_frac() -> f64 { 0.1 }
+fn default_max_steps() -> usize {
+    500
+}
+fn default_seed() -> u64 {
+    42
+}
+fn default_grid_size() -> [usize; 2] {
+    [5, 5]
+}
+fn default_obstacle_frac() -> f64 {
+    0.1
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkConfig {
@@ -95,7 +103,9 @@ pub struct NetworkConfig {
     pub activation: String,
 }
 
-fn default_activation() -> String { "relu".to_string() }
+fn default_activation() -> String {
+    "relu".to_string()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlgorithmConfig {
@@ -120,9 +130,15 @@ pub struct AlgorithmConfig {
     pub reinforce: ReinforceConfig,
 }
 
-fn default_gamma() -> f64 { 0.99 }
-fn default_lr() -> f64 { 1e-3 }
-fn default_optimizer() -> String { "adam".to_string() }
+fn default_gamma() -> f64 {
+    0.99
+}
+fn default_lr() -> f64 {
+    1e-3
+}
+fn default_optimizer() -> String {
+    "adam".to_string()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DqnConfig {
@@ -149,13 +165,27 @@ pub struct DqnConfig {
     pub warmup_steps: usize,
 }
 
-fn dqn_eps_start() -> f64 { 1.0 }
-fn dqn_eps_end() -> f64 { 0.01 }
-fn dqn_eps_decay() -> f64 { 0.995 }
-fn dqn_buf() -> usize { 10_000 }
-fn dqn_batch() -> usize { 64 }
-fn dqn_target_freq() -> usize { 100 }
-fn dqn_warmup() -> usize { 500 }
+fn dqn_eps_start() -> f64 {
+    1.0
+}
+fn dqn_eps_end() -> f64 {
+    0.01
+}
+fn dqn_eps_decay() -> f64 {
+    0.995
+}
+fn dqn_buf() -> usize {
+    10_000
+}
+fn dqn_batch() -> usize {
+    64
+}
+fn dqn_target_freq() -> usize {
+    100
+}
+fn dqn_warmup() -> usize {
+    500
+}
 
 impl Default for DqnConfig {
     fn default() -> Self {
@@ -197,17 +227,32 @@ pub struct PpoConfig {
     /// Value function loss coefficient
     #[serde(default = "ppo_vf")]
     pub value_coef: f64,
-
 }
 
-fn ppo_clip() -> f64 { 0.2 }
-fn ppo_epochs() -> usize { 4 }
-fn ppo_batch() -> usize { 64 }
-fn ppo_steps() -> usize { 512 }
-fn ppo_lr() -> f64 { 1e-3 }
-fn ppo_lambda() -> f64 { 0.95 }
-fn ppo_entropy() -> f64 { 0.01 }
-fn ppo_vf() -> f64 { 0.5 }
+fn ppo_clip() -> f64 {
+    0.2
+}
+fn ppo_epochs() -> usize {
+    4
+}
+fn ppo_batch() -> usize {
+    64
+}
+fn ppo_steps() -> usize {
+    512
+}
+fn ppo_lr() -> f64 {
+    1e-3
+}
+fn ppo_lambda() -> f64 {
+    0.95
+}
+fn ppo_entropy() -> f64 {
+    0.01
+}
+fn ppo_vf() -> f64 {
+    0.5
+}
 
 impl Default for PpoConfig {
     fn default() -> Self {
@@ -234,8 +279,12 @@ pub struct ReinforceConfig {
     pub baseline: String,
 }
 
-fn rf_normalize() -> bool { true }
-fn rf_baseline() -> String { "mean".to_string() }
+fn rf_normalize() -> bool {
+    true
+}
+fn rf_baseline() -> String {
+    "mean".to_string()
+}
 
 impl Default for ReinforceConfig {
     fn default() -> Self {
@@ -267,10 +316,18 @@ pub struct TrainingConfig {
     pub target_reward: Option<f64>,
 }
 
-fn tr_log_interval() -> usize { 10 }
-fn tr_eval_interval() -> usize { 100 }
-fn tr_eval_eps() -> usize { 5 }
-fn tr_checkpoint() -> bool { true }
+fn tr_log_interval() -> usize {
+    10
+}
+fn tr_eval_interval() -> usize {
+    100
+}
+fn tr_eval_eps() -> usize {
+    5
+}
+fn tr_checkpoint() -> bool {
+    true
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OutputConfig {
@@ -284,8 +341,12 @@ pub struct OutputConfig {
     pub print_curve: bool,
 }
 
-fn out_format() -> String { "json".to_string() }
-fn out_curve() -> bool { true }
+fn out_format() -> String {
+    "json".to_string()
+}
+fn out_curve() -> bool {
+    true
+}
 
 // ─────────────────────────────────────────────────────────
 // Sample config generator
@@ -294,13 +355,13 @@ fn out_curve() -> bool { true }
 pub fn generate_sample_config(algorithm: &str, env: &str) -> String {
     let (episodes, hidden, max_steps) = match env {
         "mountain_car" => (500, "[128, 128]", 200),
-        "gridworld"    => (300, "[64, 64]", 200),
-        _              => (600, "[128, 64]", 500),
+        "gridworld" => (300, "[64, 64]", 200),
+        _ => (600, "[128, 64]", 500),
     };
 
     match algorithm {
         "ppo" => format!(
-r#"[environment]
+            r#"[environment]
 name          = "{env}"
 max_steps     = {max_steps}
 seed          = 42
@@ -335,9 +396,10 @@ save_best      = true
 model_path  = "./models/{env}_ppo"
 format      = "json"
 print_curve = true
-"#),
+"#
+        ),
         "reinforce" => format!(
-r#"[environment]
+            r#"[environment]
 name          = "{env}"
 max_steps     = {max_steps}
 seed          = 42
@@ -367,9 +429,11 @@ save_best      = true
 model_path  = "./models/{env}_reinforce"
 format      = "json"
 print_curve = true
-"#),
-        _ => format!(   // dqn default
-r#"[environment]
+"#
+        ),
+        _ => format!(
+            // dqn default
+            r#"[environment]
 name          = "{env}"
 max_steps     = {max_steps}
 seed          = 42
@@ -404,6 +468,7 @@ save_best      = true
 model_path  = "./models/{env}_dqn"
 format      = "json"
 print_curve = true
-"#),
+"#
+        ),
     }
 }

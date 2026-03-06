@@ -1,4 +1,4 @@
-# rl-trainer 🤖
+# tom-rl 🤖
 
 > **Train reinforcement learning models from a single TOML config — zero code required.**
 
@@ -18,15 +18,7 @@
 
 ## Installation
 
-```bash
-# Clone and build (release mode for full speed)
-git clone <repo>
-cd rl-trainer
-cargo build --release
-
-# Binary is at:
-./target/release/rl-trainer --help
-```
+Download the binary(torl.exe) from the [releases](https://github.com/21maDError/tom-rl/releases) page.
 
 ---
 
@@ -34,17 +26,17 @@ cargo build --release
 
 ### 1. Generate a config
 ```bash
-rl-trainer init --algorithm dqn --env cartpole -o my_config.toml
+torl init --algorithm dqn --env cartpole -o my_config.toml
 ```
 
 ### 2. Train
 ```bash
-rl-trainer train -c my_config.toml
+torl train -c my_config.toml
 ```
 
 ### 3. Evaluate the saved model
 ```bash
-rl-trainer eval -c my_config.toml -m ./models/cartpole_dqn --episodes 10
+torl eval -c my_config.toml -m ./models/cartpole_dqn --episodes 10
 ```
 
 ---
@@ -53,7 +45,7 @@ rl-trainer eval -c my_config.toml -m ./models/cartpole_dqn --episodes 10
 
 ```
 USAGE:
-    rl-trainer <COMMAND>
+    torl <COMMAND>
 
 COMMANDS:
     train       Train an RL agent from a TOML config
@@ -261,15 +253,6 @@ Models are saved as JSON files containing:
           └────────────────────────────────────────────────┘
            0                       300                     600 episodes
 ```
-
----
-
-## Extending
-
-The codebase is designed for hackability:
-- **Add an environment**: implement the `Environment` trait in `src/env.rs`
-- **Add an algorithm**: create `src/agents/myalgo.rs`, add a training function in `trainer.rs`
-- **Add an optimizer**: extend `src/nn.rs` with a new optimizer struct
 
 ---
 

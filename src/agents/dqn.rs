@@ -1,12 +1,12 @@
 use std::collections::VecDeque;
 
 use rand::rngs::StdRng;
-use rand::{RngExt, SeedableRng, Rng};
+use rand::{Rng, RngExt, SeedableRng};
 use serde_json::json;
 
 use crate::agents::ModelSnapshot;
 use crate::config::Config;
-use crate::nn::{Adam, Network, build_layer_sizes, build_activations};
+use crate::nn::{build_activations, build_layer_sizes, Adam, Network};
 
 // ─────────────────────────────────────────────────────────
 // Experience replay buffer
@@ -14,21 +14,24 @@ use crate::nn::{Adam, Network, build_layer_sizes, build_activations};
 
 #[derive(Clone)]
 struct Experience {
-    state:      Vec<f64>,
-    action:     usize,
-    reward:     f64,
+    state: Vec<f64>,
+    action: usize,
+    reward: f64,
     next_state: Vec<f64>,
-    done:       bool,
+    done: bool,
 }
 
 struct ReplayBuffer {
-    buf:      VecDeque<Experience>,
+    buf: VecDeque<Experience>,
     capacity: usize,
 }
 
 impl ReplayBuffer {
     fn new(capacity: usize) -> Self {
-        ReplayBuffer { buf: VecDeque::with_capacity(capacity), capacity }
+        ReplayBuffer {
+            buf: VecDeque::with_capacity(capacity),
+            capacity,
+        }
     }
 
     fn push(&mut self, exp: Experience) {
@@ -40,10 +43,14 @@ impl ReplayBuffer {
 
     fn sample(&self, n: usize, rng: &mut impl Rng) -> Vec<Experience> {
         let len = self.buf.len();
-        (0..n).map(|_| self.buf[rng.random_range(0..len)].clone()).collect()
+        (0..n)
+            .map(|_| self.buf[rng.random_range(0..len)].clone())
+            .collect()
     }
 
-    fn len(&self) -> usize { self.buf.len() }
+    fn len(&self) -> usize {
+        self.buf.len()
+    }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -51,54 +58,49 @@ impl ReplayBuffer {
 // ─────────────────────────────────────────────────────────
 
 pub struct DqnAgent {
-    online_net:  Network,
-    target_net:  Network,
-    optimizer:   Adam,
-    buffer:      ReplayBuffer,
+    online_net: Network,
+    target_net: Network,
+    optimizer: Adam,
+    buffer: ReplayBuffer,
     pub epsilon: f64,
     epsilon_end: f64,
     epsilon_decay: f64,
-    gamma:       f64,
-    batch_size:  usize,
+    gamma: f64,
+    batch_size: usize,
     target_freq: usize,
-    warmup:      usize,
-    pub steps:   usize,
-    rng:         StdRng,
-    env_name:    String,
-    state_size:  usize,
+    warmup: usize,
+    pub steps: usize,
+    rng: StdRng,
+    env_name: String,
+    state_size: usize,
     action_size: usize,
 }
 
 impl DqnAgent {
-    pub fn new(
-        state_size: usize,
-        action_size: usize,
-        cfg: &Config,
-        rng: &mut StdRng,
-    ) -> Self {
+    pub fn new(state_size: usize, action_size: usize, cfg: &Config, rng: &mut StdRng) -> Self {
         let layer_sizes = build_layer_sizes(state_size, &cfg.network.hidden_layers, action_size);
         let activations = build_activations(&cfg.network.activation, layer_sizes.len() - 1);
 
         let online_net = Network::new(&layer_sizes, &activations, rng);
         let target_net = online_net.clone();
-        let optimizer  = Adam::new(&online_net, cfg.algorithm.learning_rate);
+        let optimizer = Adam::new(&online_net, cfg.algorithm.learning_rate);
 
         let dc = &cfg.algorithm.dqn;
         DqnAgent {
             online_net,
             target_net,
             optimizer,
-            buffer:        ReplayBuffer::new(dc.buffer_size),
-            epsilon:       dc.epsilon_start,
-            epsilon_end:   dc.epsilon_end,
+            buffer: ReplayBuffer::new(dc.buffer_size),
+            epsilon: dc.epsilon_start,
+            epsilon_end: dc.epsilon_end,
             epsilon_decay: dc.epsilon_decay,
-            gamma:         cfg.algorithm.gamma,
-            batch_size:    dc.batch_size,
-            target_freq:   dc.target_update_freq,
-            warmup:        dc.warmup_steps,
-            steps:         0,
-            rng:           StdRng::seed_from_u64(cfg.environment.seed + 1),
-            env_name:      cfg.environment.name.clone(),
+            gamma: cfg.algorithm.gamma,
+            batch_size: dc.batch_size,
+            target_freq: dc.target_update_freq,
+            warmup: dc.warmup_steps,
+            steps: 0,
+            rng: StdRng::seed_from_u64(cfg.environment.seed + 1),
+            env_name: cfg.environment.name.clone(),
             state_size,
             action_size,
         }
@@ -111,10 +113,10 @@ impl DqnAgent {
         } else {
             let q = self.online_net.forward_no_grad(state);
             q.iter()
-             .enumerate()
-             .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
-             .map(|(i, _)| i)
-             .unwrap_or(0)
+                .enumerate()
+                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+                .map(|(i, _)| i)
+                .unwrap_or(0)
         }
     }
 
@@ -135,7 +137,7 @@ impl DqnAgent {
             done,
         });
         self.epsilon = (self.epsilon * self.epsilon_decay).max(self.epsilon_end);
-        self.steps  += 1;
+        self.steps += 1;
 
         if self.steps % self.target_freq == 0 {
             self.target_net.copy_weights_from(&self.online_net);
@@ -150,13 +152,15 @@ impl DqnAgent {
         }
 
         let batch = self.buffer.sample(self.batch_size, &mut self.rng);
-        let mut acc_grads  = self.online_net.zero_grads();
+        let mut acc_grads = self.online_net.zero_grads();
         let mut total_loss = 0.0_f64;
 
         for exp in &batch {
             // --- Target Q-value (Bellman) ---
-            let q_next   = self.target_net.forward_no_grad(&exp.next_state);
-            let max_next = if exp.done { 0.0 } else {
+            let q_next = self.target_net.forward_no_grad(&exp.next_state);
+            let max_next = if exp.done {
+                0.0
+            } else {
                 q_next.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
             };
             let target = exp.reward + self.gamma * max_next;
@@ -181,19 +185,23 @@ impl DqnAgent {
     /// Greedy evaluation (no exploration)
     pub fn evaluate(&mut self, state: &[f64]) -> usize {
         let q = self.online_net.forward_no_grad(state);
-        q.iter().enumerate().max_by(|a, b| a.1.partial_cmp(b.1).unwrap()).map(|(i,_)| i).unwrap_or(0)
+        q.iter()
+            .enumerate()
+            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+            .map(|(i, _)| i)
+            .unwrap_or(0)
     }
 
     pub fn save(&self, path: &str, episodes: usize, best_avg: f64) -> anyhow::Result<()> {
         let snapshot = ModelSnapshot {
-            algorithm:         "dqn".to_string(),
-            environment:       self.env_name.clone(),
-            state_size:        self.state_size,
-            action_size:       self.action_size,
+            algorithm: "dqn".to_string(),
+            environment: self.env_name.clone(),
+            state_size: self.state_size,
+            action_size: self.action_size,
             training_episodes: episodes,
-            best_avg_reward:   best_avg,
-            policy_network:    self.online_net.clone(),
-            value_network:     None,
+            best_avg_reward: best_avg,
+            policy_network: self.online_net.clone(),
+            value_network: None,
             metadata: json!({
                 "epsilon_final": self.epsilon,
                 "total_steps":   self.steps,

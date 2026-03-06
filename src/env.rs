@@ -10,9 +10,9 @@ use crate::config::EnvironmentConfig;
 
 pub struct StepResult {
     pub next_state: Vec<f64>,
-    pub reward:     f64,
-    pub done:       bool,
-    pub info:       String,
+    pub reward: f64,
+    pub done: bool,
+    pub info: String,
 }
 
 pub trait Environment {
@@ -27,9 +27,9 @@ pub trait Environment {
 
 pub fn create_env(cfg: &EnvironmentConfig) -> Result<Box<dyn Environment>> {
     match cfg.name.as_str() {
-        "cartpole"     => Ok(Box::new(CartPole::new(cfg.max_steps, cfg.seed))),
+        "cartpole" => Ok(Box::new(CartPole::new(cfg.max_steps, cfg.seed))),
         "mountain_car" => Ok(Box::new(MountainCar::new(cfg.max_steps, cfg.seed))),
-        "gridworld"    => Ok(Box::new(GridWorld::new(
+        "gridworld" => Ok(Box::new(GridWorld::new(
             cfg.grid_size[0],
             cfg.grid_size[1],
             cfg.obstacle_fraction,
@@ -46,26 +46,31 @@ pub fn create_env(cfg: &EnvironmentConfig) -> Result<Box<dyn Environment>> {
 // ─────────────────────────────────────────────────────────
 
 pub struct CartPole {
-    state:     [f64; 4],
-    steps:     usize,
+    state: [f64; 4],
+    steps: usize,
     max_steps: usize,
-    rng:       StdRng,
+    rng: StdRng,
 }
 
 impl CartPole {
-    const GRAVITY:         f64 = 9.8;
-    const MASSCART:        f64 = 1.0;
-    const MASSPOLE:        f64 = 0.1;
-    const TOTAL_MASS:      f64 = Self::MASSCART + Self::MASSPOLE;
-    const LENGTH:          f64 = 0.5;
+    const GRAVITY: f64 = 9.8;
+    const MASSCART: f64 = 1.0;
+    const MASSPOLE: f64 = 0.1;
+    const TOTAL_MASS: f64 = Self::MASSCART + Self::MASSPOLE;
+    const LENGTH: f64 = 0.5;
     const POLEMASS_LENGTH: f64 = Self::MASSPOLE * Self::LENGTH;
-    const FORCE_MAG:       f64 = 10.0;
-    const TAU:             f64 = 0.02;
-    const THETA_THRESH:    f64 = 12.0 * std::f64::consts::PI / 180.0;
-    const X_THRESH:        f64 = 2.4;
+    const FORCE_MAG: f64 = 10.0;
+    const TAU: f64 = 0.02;
+    const THETA_THRESH: f64 = 12.0 * std::f64::consts::PI / 180.0;
+    const X_THRESH: f64 = 2.4;
 
     pub fn new(max_steps: usize, seed: u64) -> Self {
-        CartPole { state: [0.0; 4], steps: 0, max_steps, rng: StdRng::seed_from_u64(seed) }
+        CartPole {
+            state: [0.0; 4],
+            steps: 0,
+            max_steps,
+            rng: StdRng::seed_from_u64(seed),
+        }
     }
 }
 
@@ -79,7 +84,11 @@ impl Environment for CartPole {
     }
 
     fn step(&mut self, action: usize) -> StepResult {
-        let force = if action == 1 { Self::FORCE_MAG } else { -Self::FORCE_MAG };
+        let force = if action == 1 {
+            Self::FORCE_MAG
+        } else {
+            -Self::FORCE_MAG
+        };
         let [x, xd, th, thd] = self.state;
 
         let cos_th = th.cos();
@@ -90,9 +99,9 @@ impl Environment for CartPole {
         let x_acc = tmp - Self::POLEMASS_LENGTH * th_acc * cos_th / Self::TOTAL_MASS;
 
         self.state = [
-            x   + Self::TAU * xd,
-            xd  + Self::TAU * x_acc,
-            th  + Self::TAU * thd,
+            x + Self::TAU * xd,
+            xd + Self::TAU * x_acc,
+            th + Self::TAU * thd,
             thd + Self::TAU * th_acc,
         ];
         self.steps += 1;
@@ -102,12 +111,23 @@ impl Environment for CartPole {
             || nth.abs() > Self::THETA_THRESH
             || self.steps >= self.max_steps;
 
-        StepResult { next_state: self.state.to_vec(), reward: 1.0, done, info: String::new() }
+        StepResult {
+            next_state: self.state.to_vec(),
+            reward: 1.0,
+            done,
+            info: String::new(),
+        }
     }
 
-    fn state_size(&self)  -> usize { 4 }
-    fn action_size(&self) -> usize { 2 }
-    fn name(&self) -> &'static str { "CartPole" }
+    fn state_size(&self) -> usize {
+        4
+    }
+    fn action_size(&self) -> usize {
+        2
+    }
+    fn name(&self) -> &'static str {
+        "CartPole"
+    }
 
     fn render(&self) -> String {
         let [x, _, th, _] = self.state;
@@ -121,23 +141,29 @@ impl Environment for CartPole {
 // ─────────────────────────────────────────────────────────
 
 pub struct MountainCar {
-    pos:       f64,
-    vel:       f64,
-    steps:     usize,
+    pos: f64,
+    vel: f64,
+    steps: usize,
     max_steps: usize,
-    rng:       StdRng,
+    rng: StdRng,
 }
 
 impl MountainCar {
-    const POWER:        f64 = 0.001;
-    const GRAVITY:      f64 = 0.0025;
-    const MIN_POS:      f64 = -1.2;
-    const MAX_POS:      f64 = 0.6;
-    const MAX_SPEED:    f64 = 0.07;
-    const GOAL_POS:     f64 = 0.5;
+    const POWER: f64 = 0.001;
+    const GRAVITY: f64 = 0.0025;
+    const MIN_POS: f64 = -1.2;
+    const MAX_POS: f64 = 0.6;
+    const MAX_SPEED: f64 = 0.07;
+    const GOAL_POS: f64 = 0.5;
 
     pub fn new(max_steps: usize, seed: u64) -> Self {
-        MountainCar { pos: -0.6, vel: 0.0, steps: 0, max_steps, rng: StdRng::seed_from_u64(seed) }
+        MountainCar {
+            pos: -0.6,
+            vel: 0.0,
+            steps: 0,
+            max_steps,
+            rng: StdRng::seed_from_u64(seed),
+        }
     }
 }
 
@@ -151,12 +177,16 @@ impl Environment for MountainCar {
 
     fn step(&mut self, action: usize) -> StepResult {
         // 0=push left, 1=no push, 2=push right
-        let force: f64 = match action { 0 => -1.0, 2 => 1.0, _ => 0.0 };
+        let force: f64 = match action {
+            0 => -1.0,
+            2 => 1.0,
+            _ => 0.0,
+        };
 
         self.vel += force * Self::POWER - Self::GRAVITY * (3.0 * self.pos).cos();
-        self.vel  = self.vel.clamp(-Self::MAX_SPEED, Self::MAX_SPEED);
+        self.vel = self.vel.clamp(-Self::MAX_SPEED, Self::MAX_SPEED);
         self.pos += self.vel;
-        self.pos  = self.pos.clamp(Self::MIN_POS, Self::MAX_POS);
+        self.pos = self.pos.clamp(Self::MIN_POS, Self::MAX_POS);
 
         if self.pos == Self::MIN_POS && self.vel < 0.0 {
             self.vel = 0.0;
@@ -173,19 +203,31 @@ impl Environment for MountainCar {
             next_state: vec![self.pos, self.vel],
             reward,
             done,
-            info: if reached_goal { "Goal reached!".to_string() } else { String::new() },
+            info: if reached_goal {
+                "Goal reached!".to_string()
+            } else {
+                String::new()
+            },
         }
     }
 
-    fn state_size(&self)  -> usize { 2 }
-    fn action_size(&self) -> usize { 3 }
-    fn name(&self) -> &'static str { "MountainCar" }
+    fn state_size(&self) -> usize {
+        2
+    }
+    fn action_size(&self) -> usize {
+        3
+    }
+    fn name(&self) -> &'static str {
+        "MountainCar"
+    }
 
     fn render(&self) -> String {
         let bar_len = 40usize;
         let frac = (self.pos - Self::MIN_POS) / (Self::MAX_POS - Self::MIN_POS);
         let car = (frac * bar_len as f64) as usize;
-        let bar: String = (0..bar_len).map(|i| if i == car { '▲' } else { '─' }).collect();
+        let bar: String = (0..bar_len)
+            .map(|i| if i == car { '▲' } else { '─' })
+            .collect();
         format!("[{}] pos={:.3}  vel={:.4}", bar, self.pos, self.vel)
     }
 }
@@ -198,23 +240,23 @@ impl Environment for MountainCar {
 // ─────────────────────────────────────────────────────────
 
 pub struct GridWorld {
-    rows:       usize,
-    cols:       usize,
-    obstacles:  Vec<(usize, usize)>,
-    agent_r:    usize,
-    agent_c:    usize,
-    steps:      usize,
-    max_steps:  usize,
-    rng:        StdRng,
-    start:      (usize, usize),
-    goal:       (usize, usize),
+    rows: usize,
+    cols: usize,
+    obstacles: Vec<(usize, usize)>,
+    agent_r: usize,
+    agent_c: usize,
+    steps: usize,
+    max_steps: usize,
+    rng: StdRng,
+    start: (usize, usize),
+    goal: (usize, usize),
 }
 
 impl GridWorld {
     pub fn new(rows: usize, cols: usize, obstacle_frac: f64, max_steps: usize, seed: u64) -> Self {
         let mut rng = StdRng::seed_from_u64(seed);
         let start = (0, 0);
-        let goal  = (rows - 1, cols - 1);
+        let goal = (rows - 1, cols - 1);
 
         // Random obstacles (avoid start/goal)
         let n_obstacles = ((rows * cols) as f64 * obstacle_frac) as usize;
@@ -229,10 +271,16 @@ impl GridWorld {
         }
 
         GridWorld {
-            rows, cols, obstacles,
-            agent_r: 0, agent_c: 0,
-            steps: 0, max_steps,
-            rng, start, goal,
+            rows,
+            cols,
+            obstacles,
+            agent_r: 0,
+            agent_c: 0,
+            steps: 0,
+            max_steps,
+            rng,
+            start,
+            goal,
         }
     }
 
@@ -251,12 +299,17 @@ impl Environment for GridWorld {
     fn reset(&mut self) -> Vec<f64> {
         self.agent_r = self.start.0;
         self.agent_c = self.start.1;
-        self.steps   = 0;
+        self.steps = 0;
         self.encode_state()
     }
 
     fn step(&mut self, action: usize) -> StepResult {
-        let (dr, dc): (i64, i64) = match action { 0 => (-1,0), 1 => (1,0), 2 => (0,-1), _ => (0,1) };
+        let (dr, dc): (i64, i64) = match action {
+            0 => (-1, 0),
+            1 => (1, 0),
+            2 => (0, -1),
+            _ => (0, 1),
+        };
         let nr = (self.agent_r as i64 + dr).clamp(0, self.rows as i64 - 1) as usize;
         let nc = (self.agent_c as i64 + dc).clamp(0, self.cols as i64 - 1) as usize;
 
@@ -270,29 +323,51 @@ impl Environment for GridWorld {
         let at_goal = (self.agent_r, self.agent_c) == self.goal;
         let done = at_goal || self.steps >= self.max_steps;
 
-        let reward = if at_goal { 10.0 } else if blocked { -0.5 } else { -0.1 };
+        let reward = if at_goal {
+            10.0
+        } else if blocked {
+            -0.5
+        } else {
+            -0.1
+        };
 
         StepResult {
             next_state: self.encode_state(),
             reward,
             done,
-            info: if at_goal { "Goal!".into() } else { String::new() },
+            info: if at_goal {
+                "Goal!".into()
+            } else {
+                String::new()
+            },
         }
     }
 
-    fn state_size(&self)  -> usize { self.rows * self.cols }
-    fn action_size(&self) -> usize { 4 }
-    fn name(&self) -> &'static str { "GridWorld" }
+    fn state_size(&self) -> usize {
+        self.rows * self.cols
+    }
+    fn action_size(&self) -> usize {
+        4
+    }
+    fn name(&self) -> &'static str {
+        "GridWorld"
+    }
 
     fn render(&self) -> String {
         let mut grid = String::new();
         for r in 0..self.rows {
             for c in 0..self.cols {
-                let ch = if (r, c) == (self.agent_r, self.agent_c) { 'A' }
-                    else if (r, c) == self.goal               { 'G' }
-                    else if (r, c) == self.start              { 'S' }
-                    else if self.is_obstacle(r, c)            { '█' }
-                    else                                       { '·' };
+                let ch = if (r, c) == (self.agent_r, self.agent_c) {
+                    'A'
+                } else if (r, c) == self.goal {
+                    'G'
+                } else if (r, c) == self.start {
+                    'S'
+                } else if self.is_obstacle(r, c) {
+                    '█'
+                } else {
+                    '·'
+                };
                 grid.push(ch);
                 grid.push(' ');
             }

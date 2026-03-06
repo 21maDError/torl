@@ -1,13 +1,13 @@
+mod agents;
 mod config;
 mod env;
 mod nn;
-mod agents;
 mod trainer;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use std::{path::PathBuf, fs};
+use std::{fs, path::PathBuf};
 
 use config::Config;
 
@@ -92,7 +92,11 @@ fn main() -> Result<()> {
     print_banner();
 
     match cli.command {
-        Commands::Train { config, output, verbose } => {
+        Commands::Train {
+            config,
+            output,
+            verbose,
+        } => {
             let toml_str = fs::read_to_string(&config)
                 .with_context(|| format!("Cannot read config file '{}'", config.display()))?;
 
@@ -104,18 +108,20 @@ fn main() -> Result<()> {
                 cfg.output.model_path = out.to_string_lossy().to_string();
             }
 
-            cfg.validate()
-                .with_context(|| "Config validation failed")?;
+            cfg.validate().with_context(|| "Config validation failed")?;
 
             print_config_summary(&cfg);
 
-            trainer::train(&cfg, verbose)
-                .with_context(|| "Training failed")?;
+            trainer::train(&cfg, verbose).with_context(|| "Training failed")?;
 
             println!("\n{}", "✅  Done! Model saved successfully.".green().bold());
         }
 
-        Commands::Eval { config, model, episodes } => {
+        Commands::Eval {
+            config,
+            model,
+            episodes,
+        } => {
             let toml_str = std::fs::read_to_string(&config)
                 .with_context(|| format!("Cannot read config file '{}'", config.display()))?;
 
@@ -126,7 +132,11 @@ fn main() -> Result<()> {
                 .with_context(|| "Evaluation failed")?;
         }
 
-        Commands::InitConfig { algorithm, env, output } => {
+        Commands::InitConfig {
+            algorithm,
+            env,
+            output,
+        } => {
             let sample = config::generate_sample_config(&algorithm, &env);
             std::fs::write(&output, &sample)
                 .with_context(|| format!("Cannot write to '{}'", output.display()))?;
@@ -141,7 +151,11 @@ fn main() -> Result<()> {
                 )
                 .green()
             );
-            println!("\n{}\n{}", "── Preview ─────────────────────────────────".cyan(), sample);
+            println!(
+                "\n{}\n{}",
+                "── Preview ─────────────────────────────────".cyan(),
+                sample
+            );
         }
     }
 
@@ -154,16 +168,25 @@ fn main() -> Result<()> {
 
 fn print_banner() {
     let logo = r#"
-  ██████╗ ██╗      ████████╗██████╗  █████╗ ██╗███╗   ██╗███████╗██████╗
-  ██╔══██╗██║         ██║   ██╔══██╗██╔══██╗██║████╗  ██║██╔════╝██╔══██╗
-  ██████╔╝██║         ██║   ██████╔╝███████║██║██╔██╗ ██║█████╗  ██████╔╝
-  ██╔══██╗██║         ██║   ██╔══██╗██╔══██║██║██║╚██╗██║██╔══╝  ██╔══██╗
-  ██║  ██║███████╗    ██║   ██║  ██║██║  ██║██║██║ ╚████║███████╗██║  ██║
-  ╚═╝  ╚═╝╚══════╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+████████╗ ██████╗ ██████╗ ██╗
+╚══██╔══╝██╔═══██╗██╔══██╗██║
+   ██║   ██║   ██║██████╔╝██║
+   ██║   ██║   ██║██╔══██╗██║
+   ██║   ╚██████╔╝██║  ██║███████╗
+   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝
 "#;
     println!("{}", logo.bright_cyan());
-    println!("  {}", "Train RL models from TOML config — zero code required!".bright_white().bold());
-    println!("  {}", "Algorithms: DQN · REINFORCE · PPO   |   Envs: CartPole · MountainCar · GridWorld".bright_black());
+    println!(
+        "  {}",
+        "Train RL models from TOML config — zero code required!"
+            .bright_white()
+            .bold()
+    );
+    println!(
+        "  {}",
+        "Algorithms: DQN · REINFORCE · PPO   |   Envs: CartPole · MountainCar · GridWorld"
+            .bright_black()
+    );
     println!();
 }
 
@@ -171,40 +194,47 @@ fn print_config_summary(cfg: &Config) {
     let line = "─".repeat(48);
     println!("{}", format!("── Config {line}").cyan().bold());
 
-    let kv = |k: &str, v: &str| {
-        println!("  {:<22} {}", k.bright_black(), v.bright_white())
-    };
+    let kv = |k: &str, v: &str| println!("  {:<22} {}", k.bright_black(), v.bright_white());
 
-    kv("Environment:",   &cfg.environment.name);
-    kv("Max steps:",     &cfg.environment.max_steps.to_string());
-    kv("Algorithm:",     &cfg.algorithm.name.to_uppercase());
-    kv("Learning rate:", &format!("{:.0e}", cfg.algorithm.learning_rate));
-    kv("Gamma:",         &format!("{}", cfg.algorithm.gamma));
-    kv("Hidden layers:", &format!("{:?}", cfg.network.hidden_layers));
-    kv("Activation:",    &cfg.network.activation);
-    kv("Episodes:",      &cfg.training.episodes.to_string());
-    kv("Output path:",   &format!("{}.json", cfg.output.model_path));
-    kv("Seed:",          &cfg.environment.seed.to_string());
+    kv("Environment:", &cfg.environment.name);
+    kv("Max steps:", &cfg.environment.max_steps.to_string());
+    kv("Algorithm:", &cfg.algorithm.name.to_uppercase());
+    kv(
+        "Learning rate:",
+        &format!("{:.0e}", cfg.algorithm.learning_rate),
+    );
+    kv("Gamma:", &format!("{}", cfg.algorithm.gamma));
+    kv(
+        "Hidden layers:",
+        &format!("{:?}", cfg.network.hidden_layers),
+    );
+    kv("Activation:", &cfg.network.activation);
+    kv("Episodes:", &cfg.training.episodes.to_string());
+    kv("Output path:", &format!("{}.json", cfg.output.model_path));
+    kv("Seed:", &cfg.environment.seed.to_string());
 
     // Algorithm-specific
     match cfg.algorithm.name.as_str() {
         "dqn" => {
             let d = &cfg.algorithm.dqn;
             kv("Replay buffer:", &d.buffer_size.to_string());
-            kv("Batch size:",    &d.batch_size.to_string());
+            kv("Batch size:", &d.batch_size.to_string());
             kv("Epsilon start:", &format!("{}", d.epsilon_start));
-            kv("Target sync:",   &format!("every {} steps", d.target_update_freq));
+            kv(
+                "Target sync:",
+                &format!("every {} steps", d.target_update_freq),
+            );
         }
         "ppo" => {
             let p = &cfg.algorithm.ppo;
-            kv("Clip ε:",           &format!("{}", p.clip_epsilon));
-            kv("Update epochs:",    &p.epochs.to_string());
-            kv("Steps/update:",     &p.steps_per_update.to_string());
-            kv("GAE λ:",            &format!("{}", p.gae_lambda));
+            kv("Clip ε:", &format!("{}", p.clip_epsilon));
+            kv("Update epochs:", &p.epochs.to_string());
+            kv("Steps/update:", &p.steps_per_update.to_string());
+            kv("GAE λ:", &format!("{}", p.gae_lambda));
         }
         "reinforce" => {
             let r = &cfg.algorithm.reinforce;
-            kv("Baseline:",         &r.baseline);
+            kv("Baseline:", &r.baseline);
             kv("Normalize returns:", &r.normalize_returns.to_string());
         }
         _ => {}
