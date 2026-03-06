@@ -2,7 +2,7 @@
 
 > **Train reinforcement learning models from a single TOML config — zero code required.**
 
-<img width="2879" height="1108" alt="Screenshot 2026-03-06 142800" src="https://github.com/user-attachments/assets/91188749-6322-469d-914f-6723fe69e6a1" />
+<img width="2862" height="1144" alt="Screenshot 2026-03-06 183741" src="https://github.com/user-attachments/assets/bd8fb352-87fa-4514-8fdb-17ea1a6df0d6" />
 
 ---
 
