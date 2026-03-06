@@ -17,16 +17,16 @@ use config::Config;
 
 #[derive(Parser)]
 #[command(
-    name        = "rl-trainer",
+    name        = "torl",
     version     = "0.1.0",
     about       = "Train RL agents from a TOML config file — no code required",
     long_about  = None,
     after_help  = "\
 EXAMPLES:\n\
-    rl-trainer train -c examples/cartpole_dqn.toml\n\
-    rl-trainer train -c config.toml --output ./my_model -v\n\
-    rl-trainer eval  -c examples/cartpole_dqn.toml -m ./models/cartpole_dqn\n\
-    rl-trainer init  --algorithm ppo --env cartpole -o my_config.toml",
+    torl train -c examples/cartpole_dqn.toml\n\
+    torl train -c config.toml --output ./my_model -v\n\
+    torl eval  -c examples/cartpole_dqn.toml -m ./models/cartpole_dqn\n\
+    torl init  --algorithm ppo --env cartpole -o my_config.toml",
 )]
 struct Cli {
     #[command(subcommand)]

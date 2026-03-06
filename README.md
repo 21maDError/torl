@@ -18,7 +18,11 @@
 
 ## Installation
 
-Download the binary(torl.exe) from the [releases](https://github.com/21maDError/tom-rl/releases) page.
+### Steps:
+1. Download the binary(torl.exe) from the [releases](https://github.com/21maDError/tom-rl/releases) page.
+2. Add the binary to your PATH.
+3. Cick on the torl.exe. This will open a blue window pop up saying "Windows protected your PC". Click on "More info" and then "Run anyway".
+4. Now you can use the torl command in your terminal.
 
 ---
 
@@ -220,39 +224,6 @@ Models are saved as JSON files containing:
 | `examples/cartpole_reinforce.toml` | REINFORCE | CartPole | Policy gradient |
 | `examples/mountaincar_dqn.toml` | DQN | MountainCar | Reward shaping included |
 | `examples/gridworld_ppo.toml` | PPO | GridWorld | 6×6 grid with 10% obstacles |
-
----
-
-## Training Output
-
-```
-── Config ──────────────────────────────────────────────
-  Environment:           cartpole
-  Algorithm:             DQN
-  Hidden layers:         [128, 64]
-  Episodes:              600
-
-⣾ [00:01:23] ████████████████████ 600/600 DQN | ep   590 | reward   500.0 | avg100  487.3 | ε 0.010 | loss 0.0042
-
-── Training Summary ────────────────────────
-  Total episodes   : 600
-  Overall mean     : 342.1
-  Last-100 avg     : 487.3
-  Best episode     : 500.0
-  Model saved to   : ./models/cartpole_dqn.json
-
-── Reward Curve ─────────────────────────────
-  Max: 500.0
-  500.0 ┤                              ████████████████
-        │                          ████
-        │                     ████
-        │                 ████
-        │             ████
-        │         ████
-   10.0 ┤█████████
-          └────────────────────────────────────────────────┘
-           0                       300                     600 episodes
-```
 
 ---
 
